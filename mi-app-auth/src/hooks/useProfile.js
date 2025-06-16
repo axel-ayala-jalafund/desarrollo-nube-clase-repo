@@ -33,6 +33,7 @@ export const useProfile = () => {
         const basicProfile = {
           displayName: user.displayName || "",
           email: user.email || "",
+          photoURL: user.photoURL || "",
           address: "",
           birthDate: "",
           age: "",
