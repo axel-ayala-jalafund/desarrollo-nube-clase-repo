@@ -28,10 +28,13 @@ import { useAuth } from "../hooks/useAuth";
 import { useProfile } from "../hooks/useProfile";
 import ProfileForm from "./ProfileForm";
 import ContactList from "./ContactList";
+import { useNavigate } from "react-router-dom";
+import { Article } from "@mui/icons-material";
 
 const UserProfile = () => {
   const [profileFormOpen, setProfileFormOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const {
     user,
@@ -110,7 +113,10 @@ const UserProfile = () => {
         <CardContent>
           {/* Here's basic profile information */}
           <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-            <Avatar src={user?.photoURL} sx={{ width: 80, height: 80, mr: 3 }}>
+            <Avatar
+              src={user?.photoURL || profile?.photoURL}
+              sx={{ width: 80, height: 80, mr: 3 }}
+            >
               {(profile?.displayName || user?.displayName)?.[0] ||
                 user?.email?.[0] ||
                 "U"}
@@ -130,6 +136,15 @@ const UserProfile = () => {
                 size="small"
               >
                 Editar Perfil
+              </Button>
+              <Button
+                variant="contained"
+                startIcon={<Article />}
+                onClick={() => navigate("/posts")}
+                size="small"
+                sx={{ ml: 1 }}
+              >
+                Publicaciones
               </Button>
             </Box>
           </Box>
