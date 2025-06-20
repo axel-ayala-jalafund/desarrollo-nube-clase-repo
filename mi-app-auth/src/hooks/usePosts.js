@@ -32,15 +32,18 @@ export const usePosts = () => {
     }
   };
 
-  const createPost = async (postData) => {
+  const createPost = async (postData, imageFile = null) => {
     try {
       setError(null);
 
-      const newPost = await postService.createPost({
-        ...postData,
-        userId: user.uid,
-        userDisplayName: user.displayName || user.email,
-      });
+      const newPost = await postService.createPost(
+        {
+          ...postData,
+          userId: user.uid,
+          userDisplayName: user.displayName || user.email,
+        },
+        imageFile
+      );
 
       setPosts((prev) => [newPost, ...prev]);
       return true;
@@ -50,11 +53,19 @@ export const usePosts = () => {
     }
   };
 
-  const updatePost = async (postId, postData) => {
+  const updatePost = async (postId, postData, imageFile = null) => {
     try {
       setError(null);
 
-      const updatedPost = await postService.updatePost(postId, postData);
+      const currentPost = posts.find((post) => post.id === postId);
+      const currentImagePublicId = currentPost?.imagePublicId;
+
+      const updatedPost = await postService.updatePost(
+        postId,
+        { ...postData, userId: user.uid },
+        imageFile,
+        currentImagePublicId
+      );
 
       setPosts((prev) =>
         prev.map((post) =>
@@ -73,7 +84,10 @@ export const usePosts = () => {
     try {
       setError(null);
 
-      await postService.deletePost(postId);
+      const postToDelete = posts.find((post) => post.id === postId);
+      const imagePublicId = postToDelete?.imagePublicId;
+
+      await postService.deletePost(postId, imagePublicId);
       setPosts((prev) => prev.filter((post) => post.id !== postId));
 
       return true;

@@ -1,6 +1,7 @@
 import {
   Card,
   CardContent,
+  CardMedia,
   Typography,
   IconButton,
   Box,
@@ -21,6 +22,16 @@ const PostCard = ({ post, onEdit, onDelete }) => {
 
   return (
     <Card elevation={2} sx={{ mb: 2 }}>
+      {post.imageURL && (
+        <CardMedia
+          component="img"
+          height="300"
+          image={post.imageURL}
+          alt={post.title}
+          sx={{ objectFit: "cover" }}
+        />
+      )}
+
       <CardContent>
         {/* Post header */}
         <Box
