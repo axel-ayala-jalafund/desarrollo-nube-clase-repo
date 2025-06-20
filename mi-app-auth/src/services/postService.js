@@ -10,6 +10,7 @@ import {
   orderBy,
 } from "firebase/firestore";
 import { db } from "../config/firebase";
+import { imageService } from "./imageService";
 
 export const postService = {
   async getUserPosts(userId) {
@@ -37,33 +38,67 @@ export const postService = {
     }
   },
 
-  async createPost(postData) {
+  async createPost(postData, imageFile = null) {
     try {
       const timestamp = new Date().toISOString();
-      const fullPostData = {
+
+      let fullPostData = {
         ...postData,
         createdAt: timestamp,
         updatedAt: timestamp,
+        imageURL: null,
+        imagePublicId: null,
       };
+
+      if (imageFile) {
+        const imageResult = await imageService.uploadImage(
+          imageFile,
+          postData.userId
+        );
+        fullPostData.imageURL = imageResult.url;
+        fullPostData.imagePublicId = imageResult.publicId;
+      }
 
       const docRef = await addDoc(collection(db, "posts"), fullPostData);
 
-      return { id: docRef.id, ...fullPostData };
+      return {
+        id: docRef.id,
+        ...fullPostData,
+      };
     } catch (error) {
       console.error("Error creating post:", error);
       throw error;
     }
   },
 
-  async updatePost(postId, postData) {
+  async updatePost(
+    postId,
+    postData,
+    imageFile = null,
+    currentImagePublicId = null
+  ) {
     try {
-      const postRef = doc(db, "posts", postId);
       const updateData = {
         ...postData,
         updatedAt: new Date().toISOString(),
       };
 
+      if (imageFile) {
+        if (currentImagePublicId) {
+          await imageService.deleteImage(currentImagePublicId);
+        }
+
+        const imageResult = await imageService.uploadImage(
+          imageFile,
+          postData.userId
+        );
+        updateData.imageURL = imageResult.url;
+        updateData.imagePublicId = imageResult.publicId;
+      }
+
+      const postRef = doc(db, "posts", postId);
       await updateDoc(postRef, updateData);
+
       return { id: postId, ...updateData };
     } catch (error) {
       console.error("Error updating post:", error);
@@ -71,8 +106,12 @@ export const postService = {
     }
   },
 
-  async deletePost(postId) {
+  async deletePost(postId, imagePublicId = null) {
     try {
+      if (imagePublicId) {
+        await imageService.deleteImage(imagePublicId);
+      }
+
       await deleteDoc(doc(db, "posts", postId));
       return true;
     } catch (error) {

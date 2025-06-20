@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -9,7 +9,10 @@ import {
   Box,
   Alert,
   CircularProgress,
+  IconButton,
+  Typography,
 } from "@mui/material";
+import { PhotoCamera, Delete } from "@mui/icons-material";
 
 const PostForm = ({
   open,
@@ -23,6 +26,9 @@ const PostForm = ({
     title: "",
     content: "",
   });
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (open) {
@@ -31,11 +37,15 @@ const PostForm = ({
           title: post.title || "",
           content: post.content || "",
         });
+        setImagePreview(post.imageURL || null);
+        setSelectedImage(null);
       } else {
         setFormData({
           title: "",
           content: "",
         });
+        setImagePreview(null);
+        setSelectedImage(null);
       }
     }
   }, [open, post]);
@@ -47,6 +57,38 @@ const PostForm = ({
     }));
   };
 
+  const handleImageSelect = (event) => {
+    const file = event.target.files[0];
+
+    if (file) {
+      if (!file.type.startsWith("image/")) {
+        alert("Por favor selecciona solo archivos de imagen");
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        alert("La imagen debe ser menor a 5MB");
+        return;
+      }
+
+      setSelectedImage(file);
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setSelectedImage(null);
+    setImagePreview(post?.imageURL || null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -54,7 +96,7 @@ const PostForm = ({
       return;
     }
 
-    onSubmit(formData);
+    onSubmit(formData, selectedImage);
   };
 
   return (
@@ -91,6 +133,61 @@ const PostForm = ({
               required
               disabled={loading}
             />
+
+            <Box sx={{ border: "1px dashed #ccc", borderRadius: 1, p: 2 }}>
+              <Typography variant="subtitle2" gutterBottom>
+                Imagen (opcional)
+              </Typography>
+
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageSelect}
+                style={{ display: "none" }}
+                ref={fileInputRef}
+                disabled={loading}
+              />
+
+              {/* Image prev */}
+              {imagePreview && (
+                <Box sx={{ mb: 2, position: "relative" }}>
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    style={{
+                      width: "100%",
+                      maxHeight: 200,
+                      objectFit: "cover",
+                      borderRadius: 4,
+                    }}
+                  />
+                  <IconButton
+                    onClick={handleRemoveImage}
+                    sx={{
+                      position: "absolute",
+                      top: 8,
+                      right: 8,
+                      backgroundColor: "rgba(0,0,0,0.5)",
+                      color: "white",
+                      "&:hover": { backgroundColor: "rgba(0,0,0,0.7)" },
+                    }}
+                    size="small"
+                    disabled={loading}
+                  >
+                    <Delete />
+                  </IconButton>
+                </Box>
+              )}
+
+              <Button
+                startIcon={<PhotoCamera />}
+                onClick={() => fileInputRef.current?.click()}
+                variant={imagePreview ? "outlined" : "contained"}
+                disabled={loading}
+              >
+                {imagePreview ? "Cambiar Imagen" : "Seleccionar Imagen"}
+              </Button>
+            </Box>
           </Box>
         </DialogContent>
 

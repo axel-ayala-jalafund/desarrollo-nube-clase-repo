@@ -22,9 +22,9 @@ const PostsPage = () => {
   const { posts, loading, error, createPost, updatePost, deletePost } =
     usePosts();
 
-  const handleCreatePost = async (postData) => {
+  const handleCreatePost = async (postData, imageFile) => {
     setFormLoading(true);
-    const success = await createPost(postData);
+    const success = await createPost(postData, imageFile); 
 
     if (success) {
       setPostFormOpen(false);
@@ -34,9 +34,9 @@ const PostsPage = () => {
     setFormLoading(false);
   };
 
-  const handleEditPost = async (postData) => {
+  const handleEditPost = async (postData, imageFile) => {
     setFormLoading(true);
-    const success = await updatePost(selectedPost.id, postData);
+    const success = await updatePost(selectedPost.id, postData, imageFile);
 
     if (success) {
       setPostFormOpen(false);
