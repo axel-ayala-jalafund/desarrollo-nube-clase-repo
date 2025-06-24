@@ -9,7 +9,7 @@ import {
 } from "@mui/material";
 import { Edit, Delete } from "@mui/icons-material";
 
-const PostCard = ({ post, onEdit, onDelete }) => {
+const PostCard = ({ post, onEdit, onDelete, canEdit }) => {
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleString("es-ES", {
       year: "numeric",
@@ -19,6 +19,8 @@ const PostCard = ({ post, onEdit, onDelete }) => {
       minute: "2-digit",
     });
   };
+
+  const showEditActions = canEdit ? canEdit(post) : false;
 
   return (
     <Card elevation={2} sx={{ mb: 2 }}>
@@ -52,19 +54,21 @@ const PostCard = ({ post, onEdit, onDelete }) => {
             </Typography>
           </Box>
 
-          {/* ACtions */}
-          <Box>
-            <IconButton onClick={() => onEdit(post)} size="small">
-              <Edit />
-            </IconButton>
-            <IconButton
-              onClick={() => onDelete(post.id)}
-              size="small"
-              color="error"
-            >
-              <Delete />
-            </IconButton>
-          </Box>
+          {/* Shows only if user can edit */}
+          {showEditActions && (
+            <Box>
+              <IconButton onClick={() => onEdit(post)} size="small">
+                <Edit />
+              </IconButton>
+              <IconButton
+                onClick={() => onDelete(post.id)}
+                size="small"
+                color="error"
+              >
+                <Delete />
+              </IconButton>
+            </Box>
+          )}
         </Box>
 
         {/* Post content */}

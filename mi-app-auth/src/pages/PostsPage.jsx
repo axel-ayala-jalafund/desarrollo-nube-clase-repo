@@ -7,28 +7,48 @@ import {
   AppBar,
   Toolbar,
   IconButton,
+  Box,
+  ToggleButton,
+  ToggleButtonGroup,
 } from "@mui/material";
-import { Add, ArrowBack } from "@mui/icons-material";
+import { Add, ArrowBack, Person, People } from "@mui/icons-material";
 import { usePosts } from "../hooks/usePosts";
+import { useAuth } from "../hooks/useAuth";
 import PostForm from "../components/posts/PostForm";
 import PostList from "../components/posts/PostList";
+import NotificationManager from "../components/NotificationManager";
 
 const PostsPage = () => {
   const [postFormOpen, setPostFormOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState(null);
   const [formLoading, setFormLoading] = useState(false);
+  const [viewMode, setViewMode] = useState("mine");
 
   const navigate = useNavigate();
-  const { posts, loading, error, createPost, updatePost, deletePost } =
-    usePosts();
+  const { user } = useAuth();
+  const {
+    posts,
+    loading,
+    error,
+    createPost,
+    updatePost,
+    deletePost,
+    loadPosts,
+    loadAllPosts,
+  } = usePosts();
 
   const handleCreatePost = async (postData, imageFile) => {
     setFormLoading(true);
-    const success = await createPost(postData, imageFile); 
+    const success = await createPost(postData, imageFile);
 
     if (success) {
       setPostFormOpen(false);
       setSelectedPost(null);
+      if (viewMode === "mine") {
+        loadPosts();
+      } else {
+        loadAllPosts();
+      }
     }
 
     setFormLoading(false);
@@ -52,6 +72,17 @@ const PostsPage = () => {
     }
   };
 
+  const handleViewModeChange = (event, newViewMode) => {
+    if (newViewMode !== null) {
+      setViewMode(newViewMode);
+      if (newViewMode === "mine") {
+        loadPosts();
+      } else {
+        loadAllPosts();
+      }
+    }
+  };
+
   const openCreateForm = () => {
     setSelectedPost(null);
     setPostFormOpen(true);
@@ -65,6 +96,10 @@ const PostsPage = () => {
   const closeForm = () => {
     setPostFormOpen(false);
     setSelectedPost(null);
+  };
+
+  const canEditPost = (post) => {
+    return post.userId === user?.uid;
   };
 
   return (
@@ -82,7 +117,9 @@ const PostsPage = () => {
           </IconButton>
 
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Mis Publicaciones
+            {viewMode === "mine"
+              ? "Mis Publicaciones"
+              : "Todas las Publicaciones"}
           </Typography>
 
           <Button color="inherit" startIcon={<Add />} onClick={openCreateForm}>
@@ -93,12 +130,32 @@ const PostsPage = () => {
 
       {/* Main content */}
       <Container maxWidth="md" sx={{ py: 4 }}>
+        {/* Toggle to change views */}
+        <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
+          <ToggleButtonGroup
+            value={viewMode}
+            exclusive
+            onChange={handleViewModeChange}
+            aria-label="modo de vista"
+          >
+            <ToggleButton value="mine" aria-label="mis publicaciones">
+              <Person sx={{ mr: 1 }} />
+              Mis Publicaciones
+            </ToggleButton>
+            <ToggleButton value="all" aria-label="todas las publicaciones">
+              <People sx={{ mr: 1 }} />
+              Todas las Publicaciones
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
+
         <PostList
           posts={posts}
           loading={loading}
           error={error}
           onEdit={openEditForm}
           onDelete={handleDeletePost}
+          canEdit={canEditPost}
         />
       </Container>
 
@@ -111,6 +168,8 @@ const PostsPage = () => {
         loading={formLoading}
         error={error}
       />
+
+      {user && <NotificationManager />}
     </>
   );
 };

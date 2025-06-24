@@ -38,6 +38,27 @@ export const postService = {
     }
   },
 
+  async getAllPosts() {
+    try {
+      const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
+
+      const querySnapshot = await getDocs(q);
+      const posts = [];
+
+      querySnapshot.forEach((doc) => {
+        posts.push({
+          id: doc.id,
+          ...doc.data(),
+        });
+      });
+
+      return posts;
+    } catch (error) {
+      console.error("Error getting all posts:", error);
+      throw error;
+    }
+  },
+
   async createPost(postData, imageFile = null) {
     try {
       const timestamp = new Date().toISOString();
@@ -60,6 +81,26 @@ export const postService = {
       }
 
       const docRef = await addDoc(collection(db, "posts"), fullPostData);
+
+      // Here we call to our backend
+      try {
+        await fetch(
+          "http://localhost:5001/mi-app-auth-1c0a7/us-central1/notifyNewPost",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              authorName: fullPostData.userDisplayName,
+              postTitle: fullPostData.title,
+              authorId: fullPostData.userId,
+            }),
+          }
+        );
+      } catch (notificationError) {
+        console.warn("Error sending notification:", notificationError);
+      }
 
       return {
         id: docRef.id,
