@@ -2,6 +2,7 @@ import { Box, CircularProgress, Container } from "@mui/material";
 import { useAuth } from "../hooks/useAuth";
 import AuthForm from "./AuthForm";
 import UserProfile from "./UserProfile";
+import NotificationManager from "./NotificationManager";
 
 const Layout = () => {
   const { user, loading } = useAuth();
@@ -22,7 +23,12 @@ const Layout = () => {
   }
 
   return (
-    <Container maxWidth="md">{user ? <UserProfile /> : <AuthForm />}</Container>
+    <Container maxWidth="md">
+      {user ? <UserProfile /> : <AuthForm />}
+
+      {/* Only if user is logged */}
+      {user && <NotificationManager />}
+    </Container>
   );
 };
 

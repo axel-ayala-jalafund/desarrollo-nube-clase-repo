@@ -32,6 +32,20 @@ export const usePosts = () => {
     }
   };
 
+  const loadAllPosts = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const allPosts = await postService.getAllPosts();
+      setPosts(allPosts);
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const createPost = async (postData, imageFile = null) => {
     try {
       setError(null);
@@ -105,5 +119,6 @@ export const usePosts = () => {
     updatePost,
     deletePost,
     loadPosts,
+    loadAllPosts,
   };
 };
