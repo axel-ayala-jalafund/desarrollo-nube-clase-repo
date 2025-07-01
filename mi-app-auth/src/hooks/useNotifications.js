@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   collection,
   onSnapshot,
@@ -9,35 +9,46 @@ import {
 import { db } from "../config/firebase";
 import { useAuth } from "./useAuth";
 import { useNotificationSound } from "./useNotificationSound";
+import { useLikeNotifications } from "./useLikeNotifications";
 
 export const useNotifications = () => {
-  const [notifications, setNotifications] = useState([]);
-  const [lastPostTime, setLastPostTime] = useState(Date.now());
+  const [postNotifications, setPostNotifications] = useState([]);
   const { user } = useAuth();
   const { playSound } = useNotificationSound();
+  const isInitialLoad = useRef(true);
+  const processedPosts = useRef(new Set());
+
+  const { notifications: likeNotifications } = useLikeNotifications();
 
   useEffect(() => {
     if (!user) return;
 
-    const q = query(
+    const postsQuery = query(
       collection(db, "posts"),
       orderBy("createdAt", "desc"),
       limit(10)
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    const unsubscribe = onSnapshot(postsQuery, (snapshot) => {
+      if (isInitialLoad.current) {
+        snapshot.docs.forEach((doc) => {
+          processedPosts.current.add(doc.id);
+        });
+        isInitialLoad.current = false;
+        return;
+      }
+
       snapshot.docChanges().forEach((change) => {
         if (change.type === "added") {
           const newPost = { id: change.doc.id, ...change.doc.data() };
-          const postTime = new Date(newPost.createdAt).getTime();
 
           if (
             newPost.userId !== user.uid &&
-            postTime > lastPostTime &&
-            Date.now() - postTime < 30000
+            !processedPosts.current.has(newPost.id)
           ) {
             const notification = {
-              id: `notification_${newPost.id}_${Date.now()}`,
+              id: `post_${newPost.id}_${Date.now()}`,
+              type: "new_post",
               authorName: newPost.userDisplayName || "Usuario",
               title: newPost.title || "Nueva publicación",
               imageURL: newPost.imageURL || null,
@@ -45,33 +56,40 @@ export const useNotifications = () => {
               timestamp: Date.now(),
             };
 
-            setNotifications((prev) => [notification, ...prev]);
-
+            setPostNotifications((prev) => [notification, ...prev]);
             playSound();
 
             setTimeout(() => {
-              setNotifications((prev) =>
+              setPostNotifications((prev) =>
                 prev.filter((n) => n.id !== notification.id)
               );
             }, 5000);
           }
+
+          processedPosts.current.add(newPost.id);
         }
       });
     });
 
-    return () => unsubscribe();
-  }, [user, lastPostTime]);
+    return () => {
+      unsubscribe();
+    };
+  }, [user, playSound]);
+
+  const allNotifications = [...postNotifications, ...likeNotifications]
+    .sort((a, b) => b.timestamp - a.timestamp)
+    .slice(0, 3);
 
   const removeNotification = (notificationId) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
+    setPostNotifications((prev) => prev.filter((n) => n.id !== notificationId));
   };
 
   const clearAllNotifications = () => {
-    setNotifications([]);
+    setPostNotifications([]);
   };
 
   return {
-    notifications,
+    notifications: allNotifications,
     removeNotification,
     clearAllNotifications,
   };

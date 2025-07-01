@@ -1,7 +1,15 @@
 import { Box, Typography, CircularProgress, Alert } from "@mui/material";
 import PostCard from "./PostCard";
 
-const PostList = ({ posts, loading, error, onEdit, onDelete, canEdit }) => {
+const PostList = ({
+  posts,
+  loading,
+  error,
+  onEdit,
+  onDelete,
+  onReaction,
+  canEdit,
+}) => {
   if (loading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
@@ -39,7 +47,8 @@ const PostList = ({ posts, loading, error, onEdit, onDelete, canEdit }) => {
           post={post}
           onEdit={onEdit}
           onDelete={onDelete}
-          canEdit={canEdit} 
+          onReaction={onReaction}
+          canEdit={canEdit}
         />
       ))}
     </Box>
