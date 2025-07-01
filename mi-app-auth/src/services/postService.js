@@ -12,6 +12,10 @@ import {
 import { db } from "../config/firebase";
 import { imageService } from "./imageService";
 
+const FUNCTIONS_URL =
+  "https://us-central1-mi-app-auth-1c0a7.cloudfunctions.net";
+// "http://localhost:5001/mi-app-auth-1c0a7/us-central1" For localhost
+
 export const postService = {
   async getUserPosts(userId) {
     try {
@@ -63,12 +67,44 @@ export const postService = {
     try {
       const timestamp = new Date().toISOString();
 
+      const moderationResponse = await fetch(`${FUNCTIONS_URL}/moderatePost`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: postData.title,
+          content: postData.content,
+        }),
+      });
+
+      if (!moderationResponse.ok) {
+        console.warn(
+          "Moderation service failed, proceeding without moderation"
+        );
+      }
+
+      let moderatedData = postData;
+      try {
+        const moderationResult = await moderationResponse.json();
+        moderatedData = {
+          ...postData,
+          title: moderationResult.title,
+          content: moderationResult.content,
+          moderated: moderationResult.hasInappropriateContent,
+        };
+      } catch (moderationError) {
+        console.warn("Error parsing moderation response:", moderationError);
+      }
+
       let fullPostData = {
-        ...postData,
+        ...moderatedData,
         createdAt: timestamp,
         updatedAt: timestamp,
         imageURL: null,
         imagePublicId: null,
+        likes: [],
+        dislikes: [],
       };
 
       if (imageFile) {
@@ -82,22 +118,18 @@ export const postService = {
 
       const docRef = await addDoc(collection(db, "posts"), fullPostData);
 
-      // Here we call to our backend
       try {
-        await fetch(
-          "http://localhost:5001/mi-app-auth-1c0a7/us-central1/notifyNewPost",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              authorName: fullPostData.userDisplayName,
-              postTitle: fullPostData.title,
-              authorId: fullPostData.userId,
-            }),
-          }
-        );
+        await fetch(`${FUNCTIONS_URL}/notifyNewPost`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            authorName: fullPostData.userDisplayName,
+            postTitle: fullPostData.title,
+            authorId: fullPostData.userId,
+          }),
+        });
       } catch (notificationError) {
         console.warn("Error sending notification:", notificationError);
       }
@@ -112,6 +144,34 @@ export const postService = {
     }
   },
 
+  async handleReaction(postId, reaction, user, post) {
+    try {
+      const response = await fetch(`${FUNCTIONS_URL}/handlePostReaction`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          postId: postId,
+          userId: user.uid,
+          userName: user.displayName || user.email,
+          reaction: reaction,
+          postTitle: post.title,
+          postOwnerId: post.userId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to handle reaction");
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error handling reaction:", error);
+      throw error;
+    }
+  },
+
   async updatePost(
     postId,
     postData,
@@ -119,10 +179,34 @@ export const postService = {
     currentImagePublicId = null
   ) {
     try {
-      const updateData = {
-        ...postData,
-        updatedAt: new Date().toISOString(),
-      };
+      const moderationResponse = await fetch(`${FUNCTIONS_URL}/moderatePost`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: postData.title,
+          content: postData.content,
+        }),
+      });
+
+      let updateData = { ...postData };
+
+      if (moderationResponse.ok) {
+        try {
+          const moderationResult = await moderationResponse.json();
+          updateData = {
+            ...postData,
+            title: moderationResult.title,
+            content: moderationResult.content,
+            moderated: moderationResult.hasInappropriateContent,
+          };
+        } catch (moderationError) {
+          console.warn("Error parsing moderation response:", moderationError);
+        }
+      }
+
+      updateData.updatedAt = new Date().toISOString();
 
       if (imageFile) {
         if (currentImagePublicId) {

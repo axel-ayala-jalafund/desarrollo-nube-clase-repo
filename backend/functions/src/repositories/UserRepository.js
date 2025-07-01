@@ -1,5 +1,5 @@
-const { getMessaging } = require("firebase-admin/messaging");
-const { Profile } = require("../models/Profile");
+const {getMessaging} = require("firebase-admin/messaging");
+const {Profile} = require("../models/Profile");
 
 class UserRepository {
   constructor(firestore) {
@@ -10,9 +10,9 @@ class UserRepository {
   async getProfileById(id) {
     try {
       const doc = await this.firestore
-        .collection(this.collectionName)
-        .doc(id)
-        .get();
+          .collection(this.collectionName)
+          .doc(id)
+          .get();
 
       if (doc.exists) {
         const data = doc.data();
@@ -29,8 +29,8 @@ class UserRepository {
   async getAllUsersExcept(excludeUserId) {
     try {
       const snapshot = await this.firestore
-        .collection(this.collectionName)
-        .get();
+          .collection(this.collectionName)
+          .get();
       const users = [];
 
       snapshot.forEach((doc) => {
@@ -59,12 +59,12 @@ class UserRepository {
 
     try {
       const response = await getMessaging().subscribeToTopic(
-        profile.notificationTokens,
-        topic
+          profile.notificationTokens,
+          topic,
       );
       console.log(
-        `Successfully subscribed profile ${profile.id} to topic:`,
-        response
+          `Successfully subscribed profile ${profile.id} to topic:`,
+          response,
       );
     } catch (error) {
       console.error(`Error subscribing profile ${profile.id} to topic:`, error);
@@ -86,4 +86,4 @@ class UserRepository {
   }
 }
 
-module.exports = { UserRepository };
+module.exports = {UserRepository};

@@ -1,56 +1,20 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { postService } from "../services/postService";
 import { useAuth } from "./useAuth";
+import { useRealtimePosts } from "./useRealtimePosts";
 
-export const usePosts = () => {
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
+export const usePosts = (viewMode = "mine") => {
   const [error, setError] = useState(null);
-
   const { user } = useAuth();
 
-  useEffect(() => {
-    if (user) {
-      loadPosts();
-    } else {
-      setPosts([]);
-      setLoading(false);
-    }
-  }, [user]);
-
-  const loadPosts = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const userPosts = await postService.getUserPosts(user.uid);
-      setPosts(userPosts);
-    } catch (error) {
-      setError(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadAllPosts = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const allPosts = await postService.getAllPosts();
-      setPosts(allPosts);
-    } catch (error) {
-      setError(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Use posts on real time
+  const { posts, loading } = useRealtimePosts(viewMode);
 
   const createPost = async (postData, imageFile = null) => {
     try {
       setError(null);
 
-      const newPost = await postService.createPost(
+      await postService.createPost(
         {
           ...postData,
           userId: user.uid,
@@ -59,7 +23,6 @@ export const usePosts = () => {
         imageFile
       );
 
-      setPosts((prev) => [newPost, ...prev]);
       return true;
     } catch (error) {
       setError(error.message);
@@ -74,17 +37,11 @@ export const usePosts = () => {
       const currentPost = posts.find((post) => post.id === postId);
       const currentImagePublicId = currentPost?.imagePublicId;
 
-      const updatedPost = await postService.updatePost(
+      await postService.updatePost(
         postId,
         { ...postData, userId: user.uid },
         imageFile,
         currentImagePublicId
-      );
-
-      setPosts((prev) =>
-        prev.map((post) =>
-          post.id === postId ? { ...post, ...updatedPost } : post
-        )
       );
 
       return true;
@@ -102,8 +59,19 @@ export const usePosts = () => {
       const imagePublicId = postToDelete?.imagePublicId;
 
       await postService.deletePost(postId, imagePublicId);
-      setPosts((prev) => prev.filter((post) => post.id !== postId));
 
+      return true;
+    } catch (error) {
+      setError(error.message);
+      return false;
+    }
+  };
+
+  const handleReaction = async (postId, reaction, post) => {
+    try {
+      setError(null);
+
+      await postService.handleReaction(postId, reaction, user, post);
       return true;
     } catch (error) {
       setError(error.message);
@@ -118,7 +86,6 @@ export const usePosts = () => {
     createPost,
     updatePost,
     deletePost,
-    loadPosts,
-    loadAllPosts,
+    handleReaction,
   };
 };

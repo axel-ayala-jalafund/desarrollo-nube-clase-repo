@@ -26,6 +26,7 @@ const PostsPage = () => {
 
   const navigate = useNavigate();
   const { user } = useAuth();
+
   const {
     posts,
     loading,
@@ -33,9 +34,8 @@ const PostsPage = () => {
     createPost,
     updatePost,
     deletePost,
-    loadPosts,
-    loadAllPosts,
-  } = usePosts();
+    handleReaction,
+  } = usePosts(viewMode);
 
   const handleCreatePost = async (postData, imageFile) => {
     setFormLoading(true);
@@ -44,11 +44,6 @@ const PostsPage = () => {
     if (success) {
       setPostFormOpen(false);
       setSelectedPost(null);
-      if (viewMode === "mine") {
-        loadPosts();
-      } else {
-        loadAllPosts();
-      }
     }
 
     setFormLoading(false);
@@ -75,11 +70,14 @@ const PostsPage = () => {
   const handleViewModeChange = (event, newViewMode) => {
     if (newViewMode !== null) {
       setViewMode(newViewMode);
-      if (newViewMode === "mine") {
-        loadPosts();
-      } else {
-        loadAllPosts();
-      }
+    }
+  };
+
+  const handlePostReaction = async (postId, reaction, post) => {
+    try {
+      await handleReaction(postId, reaction, post);
+    } catch (error) {
+      console.error("Error handling post reaction:", error);
     }
   };
 
@@ -155,6 +153,7 @@ const PostsPage = () => {
           error={error}
           onEdit={openEditForm}
           onDelete={handleDeletePost}
+          onReaction={handlePostReaction}
           canEdit={canEditPost}
         />
       </Container>

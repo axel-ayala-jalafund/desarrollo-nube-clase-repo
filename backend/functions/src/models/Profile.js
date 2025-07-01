@@ -51,7 +51,7 @@ class Profile {
 
   removeNotificationToken(token) {
     this.notificationTokens = this.notificationTokens.filter(
-      (t) => t !== token
+        (t) => t !== token,
     );
   }
 
@@ -60,4 +60,4 @@ class Profile {
   }
 }
 
-module.exports = { Profile };
+module.exports = {Profile};
